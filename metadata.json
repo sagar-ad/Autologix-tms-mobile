@@ -1,0 +1,6 @@
+{
+  "name": "AutoLogix TMS Mobile Companion",
+  "description": "Enterprise Android solution architecture, 32-category REST API inventory, security analysis, and mobile companion blueprints for AutoLogix Trolley Management System.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
