@@ -30,13 +30,37 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Locate Android Project Root
+        id: locate-project
+        run: |
+          echo "Scanning repository directory structure..."
+          if [ -f "./settings.gradle.kts" ] || [ -f "./settings.gradle" ]; then
+            echo "Gradle build discovered in root directory (.)"
+            echo "PROJECT_DIR=." >> $GITHUB_ENV
+          elif [ -f "./mobile-app_v1/settings.gradle.kts" ] || [ -f "./mobile-app_v1/settings.gradle" ]; then
+            echo "Gradle build discovered in ./mobile-app_v1"
+            echo "PROJECT_DIR=./mobile-app_v1" >> $GITHUB_ENV
+          else
+            FOUND=$(find . -maxdepth 3 \( -name "settings.gradle.kts" -o -name "settings.gradle" \) | head -n 1)
+            if [ -n "$FOUND" ]; then
+              DIR=$(dirname "$FOUND")
+              echo "Gradle build discovered in $DIR"
+              echo "PROJECT_DIR=$DIR" >> $GITHUB_ENV
+            else
+              echo "Could not find settings.gradle or settings.gradle.kts! Directory tree:"
+              ls -la
+              ls -la mobile-app_v1 || true
+              exit 1
+            fi
+          fi
+
       - name: Configure Android SDK & Accept Licenses
         run: |
-          echo "sdk.dir=/usr/local/lib/android/sdk" > mobile-app_v1/local.properties
+          echo "sdk.dir=/usr/local/lib/android/sdk" > "${{ env.PROJECT_DIR }}/local.properties"
           yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Ensure Gradle Wrapper Exists and Is Executable
-        working-directory: ./mobile-app_v1
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
           if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ ! -s gradle/wrapper/gradle-wrapper.jar ]; then
             echo "gradle-wrapper.jar missing or empty, regenerating wrapper with Gradle 8.7..."
@@ -45,7 +69,7 @@ jobs:
           chmod +x gradlew
 
       - name: Build Debug APK with Gradle
-        working-directory: ./mobile-app_v1
+        working-directory: ${{ env.PROJECT_DIR }}
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
@@ -59,13 +83,13 @@ jobs:
 
       - name: Locate Generated APK
         run: |
-          ls -la mobile-app_v1/app/build/outputs/apk/debug/
+          find . -name "*.apk" -ls
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: autologix-tms-debug-apk
-          path: mobile-app_v1/app/build/outputs/apk/debug/*.apk
+          path: "**/*.apk"
           if-no-files-found: error
           retention-days: 30
 
@@ -77,7 +101,7 @@ jobs:
           tag_name: v1.0.0-apk
           name: "AutoLogix TMS Android APK v1.0.0"
           body: "AutoLogix TMS Mobile Companion compiled Android Debug APK"
-          files: mobile-app_v1/app/build/outputs/apk/debug/*.apk
+          files: "**/*.apk"
           draft: false
           prerelease: false
         env:
