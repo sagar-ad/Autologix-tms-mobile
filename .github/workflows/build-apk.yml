@@ -27,21 +27,35 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
 
       - name: Configure Android SDK & Accept Licenses
         run: |
           echo "sdk.dir=/usr/local/lib/android/sdk" > mobile-app_v1/local.properties
           yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Grant Execute Permission to Gradle Wrapper
-        run: chmod +x mobile-app_v1/gradlew
+      - name: Ensure Gradle Wrapper Exists and Is Executable
+        working-directory: ./mobile-app_v1
+        run: |
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ ! -s gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "gradle-wrapper.jar missing or empty, regenerating wrapper with Gradle 8.7..."
+            gradle wrapper --gradle-version 8.7
+          fi
+          chmod +x gradlew
 
       - name: Build Debug APK with Gradle
         working-directory: ./mobile-app_v1
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: |
+          if [ -s gradle/wrapper/gradle-wrapper.jar ]; then
+            ./gradlew assembleDebug --stacktrace --no-daemon
+          else
+            echo "Running with system Gradle 8.7 directly..."
+            gradle assembleDebug --stacktrace --no-daemon
+          fi
 
       - name: Locate Generated APK
         run: |
