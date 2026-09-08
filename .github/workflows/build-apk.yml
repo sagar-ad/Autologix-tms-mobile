@@ -30,28 +30,141 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Locate Android Project Root
-        id: locate-project
+      - name: Ensure Gradle Project Files Exist
         run: |
-          echo "Scanning repository directory structure..."
-          if [ -f "./settings.gradle.kts" ] || [ -f "./settings.gradle" ]; then
-            echo "Gradle build discovered in root directory (.)"
-            echo "PROJECT_DIR=." >> $GITHUB_ENV
-          elif [ -f "./mobile-app_v1/settings.gradle.kts" ] || [ -f "./mobile-app_v1/settings.gradle" ]; then
-            echo "Gradle build discovered in ./mobile-app_v1"
-            echo "PROJECT_DIR=./mobile-app_v1" >> $GITHUB_ENV
+          if [ -d "mobile-app_v1" ]; then
+            TARGET_DIR="mobile-app_v1"
           else
-            FOUND=$(find . -maxdepth 3 \( -name "settings.gradle.kts" -o -name "settings.gradle" \) | head -n 1)
-            if [ -n "$FOUND" ]; then
-              DIR=$(dirname "$FOUND")
-              echo "Gradle build discovered in $DIR"
-              echo "PROJECT_DIR=$DIR" >> $GITHUB_ENV
-            else
-              echo "Could not find settings.gradle or settings.gradle.kts! Directory tree:"
-              ls -la
-              ls -la mobile-app_v1 || true
-              exit 1
-            fi
+            TARGET_DIR="."
+          fi
+          echo "Target directory for Android project is: $TARGET_DIR"
+          echo "PROJECT_DIR=$TARGET_DIR" >> $GITHUB_ENV
+
+          # 1. Ensure settings.gradle.kts exists
+          if [ ! -f "$TARGET_DIR/settings.gradle.kts" ] && [ ! -f "$TARGET_DIR/settings.gradle" ]; then
+            echo "Auto-creating $TARGET_DIR/settings.gradle.kts..."
+            cat << 'EOF' > "$TARGET_DIR/settings.gradle.kts"
+pluginManagement {
+    repositories {
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "AutoLogix TMS"
+include(":app")
+EOF
+          fi
+
+          # 2. Ensure build.gradle.kts exists
+          if [ ! -f "$TARGET_DIR/build.gradle.kts" ] && [ ! -f "$TARGET_DIR/build.gradle" ]; then
+            echo "Auto-creating $TARGET_DIR/build.gradle.kts..."
+            cat << 'EOF' > "$TARGET_DIR/build.gradle.kts"
+plugins {
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+}
+EOF
+          fi
+
+          # 3. Ensure gradle.properties exists
+          if [ ! -f "$TARGET_DIR/gradle.properties" ]; then
+            echo "Auto-creating $TARGET_DIR/gradle.properties..."
+            cat << 'EOF' > "$TARGET_DIR/gradle.properties"
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+android.nonTransitiveRClass=true
+kotlin.code.style=official
+EOF
+          fi
+
+          # 4. Ensure gradle/libs.versions.toml exists
+          mkdir -p "$TARGET_DIR/gradle"
+          if [ ! -f "$TARGET_DIR/gradle/libs.versions.toml" ]; then
+            echo "Auto-creating $TARGET_DIR/gradle/libs.versions.toml..."
+            cat << 'EOF' > "$TARGET_DIR/gradle/libs.versions.toml"
+[versions]
+agp = "8.5.2"
+kotlin = "2.0.0"
+coreKtx = "1.13.1"
+junit = "4.13.2"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+lifecycleRuntimeKtx = "2.8.4"
+activityCompose = "1.9.1"
+composeBom = "2024.06.00"
+navigationCompose = "2.7.7"
+retrofit = "2.11.0"
+okhttp = "4.12.0"
+kotlinxSerialization = "1.7.1"
+securityCrypto = "1.1.0-alpha06"
+coroutines = "1.8.1"
+materialIconsExtended = "1.6.8"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+okhttp-core = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+EOF
+          fi
+
+          # 5. Ensure app/proguard-rules.pro exists
+          mkdir -p "$TARGET_DIR/app"
+          if [ ! -f "$TARGET_DIR/app/proguard-rules.pro" ]; then
+            cat << 'EOF' > "$TARGET_DIR/app/proguard-rules.pro"
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn retrofit2.**
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+-keep class com.autologix.tms.data.models.** { *; }
+EOF
           fi
 
       - name: Configure Android SDK & Accept Licenses
