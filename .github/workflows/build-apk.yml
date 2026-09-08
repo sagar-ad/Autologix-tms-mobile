@@ -7,6 +7,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Assemble Debug APK
@@ -21,21 +24,47 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Make Gradle Wrapper Executable
+      - name: Configure Android SDK & Accept Licenses
+        run: |
+          echo "sdk.dir=/usr/local/lib/android/sdk" > mobile-app_v1/local.properties
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: Grant Execute Permission to Gradle Wrapper
         run: chmod +x mobile-app_v1/gradlew
 
       - name: Build Debug APK with Gradle
         working-directory: ./mobile-app_v1
-        run: ./gradlew assembleDebug --stacktrace
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
+
+      - name: Locate Generated APK
+        run: |
+          ls -la mobile-app_v1/app/build/outputs/apk/debug/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: autologix-tms-debug-apk
-          path: mobile-app_v1/app/build/outputs/apk/debug/app-debug.apk
+          path: mobile-app_v1/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          retention-days: 30
+
+      - name: Create or Update GitHub Release (Manual Dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        continue-on-error: true
+        with:
+          tag_name: v1.0.0-apk
+          name: "AutoLogix TMS Android APK v1.0.0"
+          body: "AutoLogix TMS Mobile Companion compiled Android Debug APK"
+          files: mobile-app_v1/app/build/outputs/apk/debug/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
