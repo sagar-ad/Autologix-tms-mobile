@@ -7,6 +7,7 @@ data class UserSession(
     val role: String,
     val organizationId: String? = null,
     val organizationName: String? = null,
+    val activeOrganizationName: String? = organizationName,
     val accessToken: String,
     val refreshToken: String? = null,
     val environment: AppEnvironment = AppEnvironment.DEVELOPMENT,

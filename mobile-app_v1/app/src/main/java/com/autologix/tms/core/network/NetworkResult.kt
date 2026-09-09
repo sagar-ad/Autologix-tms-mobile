@@ -8,5 +8,4 @@ sealed class NetworkResult<out T> {
         val errorBody: String? = null
     ) : NetworkResult<Nothing>()
     data class NetworkError(val exception: Throwable? = null) : NetworkResult<Nothing>()
-    data object Loading : NetworkResult<Nothing>()
 }

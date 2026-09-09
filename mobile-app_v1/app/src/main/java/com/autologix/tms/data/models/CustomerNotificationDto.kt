@@ -16,5 +16,7 @@ data class CustomerNotificationDto(
     @SerializedName("type")
     val type: String? = null,
     @SerializedName("targetId")
-    val targetId: String? = null
+    val targetId: String? = null,
+    @SerializedName("relatedEntityId")
+    val relatedEntityId: String? = targetId
 )

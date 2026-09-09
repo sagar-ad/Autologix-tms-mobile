@@ -3,11 +3,11 @@ package com.autologix.tms.data.repositories
 import com.autologix.tms.core.network.NetworkResult
 import com.autologix.tms.data.models.CustomerDashboardKpiDto
 import com.autologix.tms.data.models.CustomerFleetReportDto
+import com.autologix.tms.data.models.CustomerNotificationDto
 import com.autologix.tms.data.models.DamageChecklistTemplateDto
 import com.autologix.tms.data.models.DamageReportDto
 import com.autologix.tms.data.models.ErrorResponseDto
 import com.autologix.tms.data.models.MediaUploadResponseDto
-import com.autologix.tms.data.models.NotificationItemDto
 import com.autologix.tms.data.models.ReportDamageRequestDto
 import com.autologix.tms.data.models.Trolley360ViewDto
 import com.autologix.tms.data.models.TrolleyFullDetailDto
@@ -45,10 +45,11 @@ class CustomerRepositoryImpl(
 
     override suspend fun getTrolleys(
         search: String?,
-        status: String?
+        status: String?,
+        limit: Int?
     ): NetworkResult<List<TrolleySummaryDto>> = withContext(Dispatchers.IO) {
         try {
-            val response = customerApiService.getTrolleys(search = search, status = status)
+            val response = customerApiService.getTrolleys(search = search, status = status, limit = limit ?: 30)
             if (response.isSuccessful && response.body() != null) {
                 NetworkResult.Success(response.body()!!.items)
             } else {
@@ -121,10 +122,9 @@ class CustomerRepositoryImpl(
         mimeType: String
     ): NetworkResult<MediaUploadResponseDto> = withContext(Dispatchers.IO) {
         try {
-            val mediaType = mimeType.toMediaTypeOrNull()
-            val requestFile = fileBytes.toRequestBody(mediaType)
+            val requestFile = fileBytes.toRequestBody(mimeType.toMediaTypeOrNull())
             val filePart = MultipartBody.Part.createFormData("file", fileName, requestFile)
-            val tagPart = "DAMAGE".toRequestBody("text/plain".toMediaTypeOrNull())
+            val tagPart = "DAMAGE_REPORT".toRequestBody("text/plain".toMediaTypeOrNull())
 
             val response = customerApiService.uploadMedia(filePart, tagPart)
             if (response.isSuccessful && response.body() != null) {
@@ -179,12 +179,24 @@ class CustomerRepositoryImpl(
             }
         }
 
-    override suspend fun getNotifications(unreadOnly: Boolean): NetworkResult<List<NotificationItemDto>> =
+    override suspend fun getNotifications(unreadOnly: Boolean): NetworkResult<List<CustomerNotificationDto>> =
         withContext(Dispatchers.IO) {
             try {
                 val response = customerApiService.getNotifications(unreadOnly = unreadOnly)
                 if (response.isSuccessful && response.body() != null) {
-                    NetworkResult.Success(response.body()!!.items)
+                    val dtos = response.body()!!.items.map { item ->
+                        CustomerNotificationDto(
+                            id = item.id,
+                            title = item.title,
+                            message = item.message,
+                            createdAt = item.createdAt,
+                            isRead = item.isRead,
+                            type = item.type,
+                            targetId = item.entityId,
+                            relatedEntityId = item.entityId
+                        )
+                    }
+                    NetworkResult.Success(dtos)
                 } else {
                     parseHttpError(response)
                 }
@@ -193,12 +205,24 @@ class CustomerRepositoryImpl(
             }
         }
 
-    override suspend fun markNotificationAsRead(id: String): NetworkResult<NotificationItemDto> =
+    override suspend fun markNotificationAsRead(id: String): NetworkResult<CustomerNotificationDto> =
         withContext(Dispatchers.IO) {
             try {
                 val response = customerApiService.markNotificationAsRead(id)
                 if (response.isSuccessful && response.body() != null) {
-                    NetworkResult.Success(response.body()!!)
+                    val item = response.body()!!
+                    NetworkResult.Success(
+                        CustomerNotificationDto(
+                            id = item.id,
+                            title = item.title,
+                            message = item.message,
+                            createdAt = item.createdAt,
+                            isRead = item.isRead,
+                            type = item.type,
+                            targetId = item.entityId,
+                            relatedEntityId = item.entityId
+                        )
+                    )
                 } else {
                     parseHttpError(response)
                 }
