@@ -16,4 +16,5 @@ data class UserSession(
     val userName: String get() = name
     val userEmail: String get() = email
     val userRole: String get() = role
+    val isAuthenticated: Boolean get() = accessToken.isNotBlank()
 }
