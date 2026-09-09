@@ -32,14 +32,10 @@ jobs:
 
       - name: Locate Android Project & Configure SDK
         run: |
-          if [ -f "./settings.gradle.kts" ] || [ -f "./settings.gradle" ]; then
+          if [ -f "./mobile-app_v1/settings.gradle.kts" ] || [ -f "./mobile-app_v1/settings.gradle" ]; then
+            TARGET_DIR="./mobile-app_v1"
+          elif [ -f "./settings.gradle.kts" ] || [ -f "./settings.gradle" ]; then
             TARGET_DIR="."
-          elif [ -f "./mobile-app_v1/mobile-app_v1/settings.gradle.kts" ]; then
-            TARGET_DIR="./mobile-app_v1/mobile-app_v1"
-          elif [ -f "./mobile-app_v1/settings.gradle.kts" ]; then
-            TARGET_DIR="./mobile-app_v1"
-          elif [ -d "./mobile-app_v1" ]; then
-            TARGET_DIR="./mobile-app_v1"
           else
             TARGET_DIR="."
           fi
@@ -54,10 +50,6 @@ jobs:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           cd "$PROJECT_DIR"
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ ! -s gradle/wrapper/gradle-wrapper.jar ]; then
-            echo "Regenerating wrapper with Gradle 8.7..."
-            gradle wrapper --gradle-version 8.7
-          fi
           chmod +x gradlew || true
           ./gradlew assembleDebug --stacktrace --no-daemon
 
