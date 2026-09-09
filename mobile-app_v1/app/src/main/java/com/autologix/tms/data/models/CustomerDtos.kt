@@ -253,8 +253,13 @@ data class DamageReportDto(
     @SerializedName("resolvedAt")
     val resolvedAt: String? = null,
     @SerializedName("assignedTechnician")
-    val assignedTechnician: String? = null
-)
+    val assignedTechnician: String? = null,
+    @SerializedName("workOrderId")
+    val workOrderId: String? = null
+) {
+    val ticketNumber: String get() = ticketNo
+    val trolleyNumber: String get() = trolleySerialNo
+}
 
 data class MediaUploadResponseDto(
     @SerializedName("url")

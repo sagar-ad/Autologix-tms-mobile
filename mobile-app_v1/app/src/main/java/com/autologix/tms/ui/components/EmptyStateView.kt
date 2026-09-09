@@ -24,12 +24,15 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun EmptyStateView(
     title: String,
-    message: String,
+    message: String = "",
     modifier: Modifier = Modifier,
+    description: String? = null,
     icon: ImageVector? = null,
     actionLabel: String? = null,
     onActionClick: (() -> Unit)? = null
 ) {
+    val displayMessage = description ?: message
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -54,14 +57,16 @@ fun EmptyStateView(
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        if (displayMessage.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
+            Text(
+                text = displayMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
 
         if (!actionLabel.isNullOrBlank() && onActionClick != null) {
             Spacer(modifier = Modifier.height(16.dp))

@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.ThreeDRotation
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -197,7 +196,7 @@ fun LogisticsDashboardScreen(
                     )
                     QuickToolCard(
                         title = "Trolley 360°",
-                        icon = Icons.Default.ThreeDRotation,
+                        icon = Icons.Default.Refresh,
                         modifier = Modifier.weight(1f),
                         onClick = { onNavigateToRoute(Screen.CustomerTrolley360.createRoute("TRL-2024-001")) }
                     )

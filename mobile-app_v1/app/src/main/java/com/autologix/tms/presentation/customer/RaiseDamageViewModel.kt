@@ -24,7 +24,7 @@ data class PhotoUploadItem(
 data class RaiseDamageUiState(
     val trolleyId: String = "",
     val trolleySerialNo: String = "",
-    val availableChecklist: List<DamageChecklistItemDto> = defaultChecklist,
+    val availableChecklist: List<DamageChecklistItemDto> = RaiseDamageViewModel.defaultChecklist,
     val selectedChecklistIds: Set<String> = emptySet(),
     val severity: String = "MODERATE", // MINOR, MODERATE, HIGH, CRITICAL
     val category: String = "MECHANICAL", // MECHANICAL, STRUCTURAL, ELECTRICAL, SURFACE

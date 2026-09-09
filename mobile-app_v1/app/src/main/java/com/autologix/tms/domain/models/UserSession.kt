@@ -12,4 +12,8 @@ data class UserSession(
     val refreshToken: String? = null,
     val environment: AppEnvironment = AppEnvironment.DEVELOPMENT,
     val customBaseUrl: String? = null
-)
+) {
+    val userName: String get() = name
+    val userEmail: String get() = email
+    val userRole: String get() = role
+}

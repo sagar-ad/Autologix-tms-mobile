@@ -9,7 +9,10 @@ data class MonthlyIncidentTrendDto(
     val reported: Int,
     @SerializedName("resolved")
     val resolved: Int
-)
+) {
+    val reportedCount: Int get() = reported
+    val resolvedCount: Int get() = resolved
+}
 
 data class IncidentCategoryCountDto(
     @SerializedName("category")

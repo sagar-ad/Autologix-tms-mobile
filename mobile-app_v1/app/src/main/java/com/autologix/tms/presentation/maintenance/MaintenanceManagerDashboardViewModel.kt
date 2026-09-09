@@ -42,8 +42,30 @@ data class MaintenanceManagerUiState(
             PmScheduleDto("PM-103", "TRL-2024-089", "TRL-2024-089", "Custom Bin", "In 3 days", "SCHEDULED", priority = "LOW")
         )
         val defaultDamageRequests = listOf(
-            DamageReportDto("DMG-901", "T-DMG-2026-001", "TRL-2024-042", "TRL-2024-042", "WHEELS_AND_CASTORS", "HIGH", "Left rear castor locked, severe vibration during towing", emptyList(), "OPEN", "2026-03-08"),
-            DamageReportDto("DMG-902", "T-DMG-2026-002", "TRL-2024-015", "TRL-2024-015", "TOW_BAR_COUPLER", "CRITICAL", "Tow hitch pin deformed, risk of uncoupling", emptyList(), "IN_REVIEW", "2026-03-07")
+            DamageReportDto(
+                id = "DMG-901",
+                ticketNo = "T-DMG-2026-001",
+                trolleyId = "TRL-2024-042",
+                trolleySerialNo = "TRL-2024-042",
+                category = "WHEELS_AND_CASTORS",
+                severity = "HIGH",
+                description = "Left rear castor locked, severe vibration during towing",
+                photoUrls = emptyList(),
+                status = "OPEN",
+                createdAt = "2026-03-08"
+            ),
+            DamageReportDto(
+                id = "DMG-902",
+                ticketNo = "T-DMG-2026-002",
+                trolleyId = "TRL-2024-015",
+                trolleySerialNo = "TRL-2024-015",
+                category = "TOW_BAR_COUPLER",
+                severity = "CRITICAL",
+                description = "Tow hitch pin deformed, risk of uncoupling",
+                photoUrls = emptyList(),
+                status = "IN_REVIEW",
+                createdAt = "2026-03-07"
+            )
         )
         val defaultWorkOrders = listOf(
             WorkOrderDto(

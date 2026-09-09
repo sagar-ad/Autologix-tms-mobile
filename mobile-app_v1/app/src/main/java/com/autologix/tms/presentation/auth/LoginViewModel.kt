@@ -134,9 +134,6 @@ class LoginViewModel(
                         )
                     }
                 }
-                NetworkResult.Loading -> {
-                    _uiState.update { it.copy(isLoading = true) }
-                }
             }
         }
     }
