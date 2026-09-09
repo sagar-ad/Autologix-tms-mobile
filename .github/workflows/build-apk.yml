@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -55,8 +55,11 @@ jobs:
           if ! ./gradlew assembleDebug --stacktrace --no-daemon > build_output.log 2>&1; then
             echo "=== Gradle build failed ==="
             cat build_output.log
-            ERR_MSG=$(grep -E -i "error:|FAILURE:|BUILD FAILED|Caused by:" build_output.log | head -n 15 | tr '\r\n' '  ')
-            echo "::error title=Gradle Build Failure::$ERR_MSG"
+            grep -F "e: " build_output.log | head -n 40 | while IFS= read -r line; do
+              echo "::error title=Kotlin Compilation Error::$line"
+            done
+            ERR_MSG=$(grep -E -i "error:|FAILURE:|BUILD FAILED|Caused by:" build_output.log | head -n 10 | tr '\r\n' '  ')
+            echo "::error title=Build Failure Summary::$ERR_MSG"
             exit 1
           fi
           echo "=== Gradle build succeeded ==="
