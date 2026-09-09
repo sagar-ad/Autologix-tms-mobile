@@ -51,13 +51,14 @@ jobs:
         run: |
           cd "$PROJECT_DIR"
           chmod +x gradlew || true
-          echo "=== Starting Gradle build ==="
-          ./gradlew assembleDebug --stacktrace --no-daemon > build_output.log 2>&1 || {
-            BUILD_STATUS=$?
-            echo "=== Gradle build failed with exit code $BUILD_STATUS ==="
+          echo "=== Starting Gradle assembleDebug ==="
+          if ! ./gradlew assembleDebug --stacktrace --no-daemon > build_output.log 2>&1; then
+            echo "=== Gradle build failed ==="
             cat build_output.log
-            exit $BUILD_STATUS
-          }
+            ERR_MSG=$(grep -E -i "error:|FAILURE:|BUILD FAILED|Caused by:" build_output.log | head -n 15 | tr '\r\n' '  ')
+            echo "::error title=Gradle Build Failure::$ERR_MSG"
+            exit 1
+          fi
           echo "=== Gradle build succeeded ==="
 
       - name: Locate Generated APK
