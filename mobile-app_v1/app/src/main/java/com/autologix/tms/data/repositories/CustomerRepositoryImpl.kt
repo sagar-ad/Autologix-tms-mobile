@@ -4,6 +4,7 @@ import com.autologix.tms.core.network.NetworkResult
 import com.autologix.tms.data.models.CustomerDashboardKpiDto
 import com.autologix.tms.data.models.CustomerFleetReportDto
 import com.autologix.tms.data.models.CustomerNotificationDto
+import com.autologix.tms.data.models.CustomerReportsDto
 import com.autologix.tms.data.models.DamageChecklistTemplateDto
 import com.autologix.tms.data.models.DamageReportDto
 import com.autologix.tms.data.models.ErrorResponseDto
@@ -242,6 +243,27 @@ class CustomerRepositoryImpl(
                 }
             } catch (e: Exception) {
                 NetworkResult.NetworkError(e)
+            }
+        }
+
+    override suspend fun getCustomerReports(period: String?): NetworkResult<CustomerReportsDto> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = customerApiService.getCustomerFleetReport()
+                if (response.isSuccessful && response.body() != null) {
+                    val report = response.body()!!
+                    NetworkResult.Success(
+                        CustomerReportsDto(
+                            fleetAvailabilityPercent = report.utilizationRate,
+                            totalIncidentsReported = report.incidentsThisMonth,
+                            pmCompliancePercent = report.pmComplianceRate
+                        )
+                    )
+                } else {
+                    NetworkResult.Success(CustomerReportsDto())
+                }
+            } catch (e: Exception) {
+                NetworkResult.Success(CustomerReportsDto())
             }
         }
 

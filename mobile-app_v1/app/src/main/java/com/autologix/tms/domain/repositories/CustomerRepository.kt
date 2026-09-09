@@ -4,6 +4,7 @@ import com.autologix.tms.core.network.NetworkResult
 import com.autologix.tms.data.models.CustomerDashboardKpiDto
 import com.autologix.tms.data.models.CustomerFleetReportDto
 import com.autologix.tms.data.models.CustomerNotificationDto
+import com.autologix.tms.data.models.CustomerReportsDto
 import com.autologix.tms.data.models.DamageChecklistTemplateDto
 import com.autologix.tms.data.models.DamageReportDto
 import com.autologix.tms.data.models.MediaUploadResponseDto
@@ -28,4 +29,5 @@ interface CustomerRepository {
     suspend fun markNotificationAsRead(id: String): NetworkResult<CustomerNotificationDto>
     suspend fun markNotificationRead(id: String): NetworkResult<CustomerNotificationDto> = markNotificationAsRead(id)
     suspend fun getCustomerFleetReport(): NetworkResult<CustomerFleetReportDto>
+    suspend fun getCustomerReports(period: String? = null): NetworkResult<CustomerReportsDto>
 }
