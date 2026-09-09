@@ -30,14 +30,26 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Ensure Gradle Project Files Exist
+      - name: Locate & Prepare Android Project
         run: |
-          if [ -d "mobile-app_v1" ]; then
-            TARGET_DIR="mobile-app_v1"
-          else
+          echo "Scanning repository directory structure for Android project..."
+          if [ -f "./settings.gradle.kts" ] || [ -f "./settings.gradle" ]; then
             TARGET_DIR="."
+          elif [ -f "./mobile-app_v1/mobile-app_v1/settings.gradle.kts" ]; then
+            TARGET_DIR="./mobile-app_v1/mobile-app_v1"
+          elif [ -f "./mobile-app_v1/settings.gradle.kts" ] || [ -d "./mobile-app_v1/app" ]; then
+            TARGET_DIR="./mobile-app_v1"
+          elif [ -d "./mobile-app_v1/mobile-app_v1" ]; then
+            TARGET_DIR="./mobile-app_v1/mobile-app_v1"
+          else
+            FOUND=$(find . -maxdepth 3 \( -name "settings.gradle.kts" -o -name "settings.gradle" \) | head -n 1)
+            if [ -n "$FOUND" ]; then
+              TARGET_DIR=$(dirname "$FOUND")
+            else
+              TARGET_DIR="."
+            fi
           fi
-          echo "Target directory for Android project is: $TARGET_DIR"
+          echo "Discovered Android Project Root at: $TARGET_DIR"
           echo "PROJECT_DIR=$TARGET_DIR" >> $GITHUB_ENV
 
           # 1. Ensure settings.gradle.kts exists
@@ -151,8 +163,107 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 EOF
           fi
 
-          # 5. Ensure app/proguard-rules.pro exists
+          # 5. Ensure app/build.gradle.kts exists
           mkdir -p "$TARGET_DIR/app"
+          if [ ! -f "$TARGET_DIR/app/build.gradle.kts" ] && [ ! -f "$TARGET_DIR/app/build.gradle" ]; then
+            echo "Auto-creating $TARGET_DIR/app/build.gradle.kts..."
+            cat << 'EOF' > "$TARGET_DIR/app/build.gradle.kts"
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+}
+
+android {
+    namespace = "com.autologix.tms"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.autologix.tms"
+        minSdk = 26
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+    }
+
+    buildTypes {
+        debug {
+            isMinifyEnabled = false
+            buildConfigField("String", "DEFAULT_ENV", "\"DEVELOPMENT\"")
+        }
+        release {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            buildConfigField("String", "DEFAULT_ENV", "\"PRODUCTION\"")
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.navigation.compose)
+
+    // Networking
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.core)
+    implementation(libs.okhttp.logging)
+
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Security
+    implementation(libs.androidx.security.crypto)
+
+    // Testing
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
+}
+EOF
+          fi
+
+          # 6. Ensure app/proguard-rules.pro exists
           if [ ! -f "$TARGET_DIR/app/proguard-rules.pro" ]; then
             cat << 'EOF' > "$TARGET_DIR/app/proguard-rules.pro"
 -dontwarn okhttp3.**
@@ -164,6 +275,47 @@ EOF
     @com.google.gson.annotations.SerializedName <fields>;
 }
 -keep class com.autologix.tms.data.models.** { *; }
+-keep class com.autologix.tms.domain.models.** { *; }
+EOF
+          fi
+
+          # 7. Ensure app/src/main/AndroidManifest.xml exists
+          mkdir -p "$TARGET_DIR/app/src/main"
+          if [ ! -f "$TARGET_DIR/app/src/main/AndroidManifest.xml" ]; then
+            cat << 'EOF' > "$TARGET_DIR/app/src/main/AndroidManifest.xml"
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <application
+        android:name=".TmsApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="AutoLogix TMS"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AutoLogixTMS"
+        android:usesCleartextTraffic="true">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AutoLogixTMS"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
 EOF
           fi
 
