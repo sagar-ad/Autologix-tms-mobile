@@ -68,6 +68,14 @@ jobs:
         run: |
           find . -name "*.apk" -ls
 
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autologix-tms-debug-apk
+          path: "**/build/outputs/apk/debug/*.apk"
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Upload Build Artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -80,15 +88,14 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
-      - name: Create or Update GitHub Release (Manual Dispatch)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         continue-on-error: true
         with:
           tag_name: v1.0.0-apk
           name: "AutoLogix TMS Android APK v1.0.0"
           body: "AutoLogix TMS Mobile Companion compiled Android Debug APK"
-          files: "**/*.apk"
+          files: "**/build/outputs/apk/debug/*.apk"
           draft: false
           prerelease: false
         env:
