@@ -51,18 +51,29 @@ jobs:
         run: |
           cd "$PROJECT_DIR"
           chmod +x gradlew || true
-          ./gradlew assembleDebug --stacktrace --no-daemon
+          echo "=== Starting Gradle build ==="
+          ./gradlew assembleDebug --stacktrace --no-daemon > build_output.log 2>&1 || {
+            BUILD_STATUS=$?
+            echo "=== Gradle build failed with exit code $BUILD_STATUS ==="
+            cat build_output.log
+            exit $BUILD_STATUS
+          }
+          echo "=== Gradle build succeeded ==="
 
       - name: Locate Generated APK
         run: |
           find . -name "*.apk" -ls
 
-      - name: Upload APK Artifact
+      - name: Upload Build Artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: autologix-tms-debug-apk
-          path: "**/*.apk"
-          if-no-files-found: error
+          name: build-logs-and-apk
+          path: |
+            **/*.apk
+            **/build_output.log
+            **/build/reports/**
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Create or Update GitHub Release (Manual Dispatch)
